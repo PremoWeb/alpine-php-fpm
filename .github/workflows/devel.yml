@@ -1,0 +1,35 @@
+name: devel
+on:
+  pull_request:
+  push:
+    branches:
+    - master
+
+jobs:
+  docker:
+    name: PHP test
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [7.4-fpm, 8.0-fpm, 8.1-fpm]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Build
+        uses: mattes/cached-docker-build-action@v1
+        with:
+          args: "-t premoweb/php-fpm:${{ matrix.php }} -f ${{ matrix.php }}/Dockerfile ."
+          cache_key: "${{ hashFiles('**/lockfiles') }}"
+      -
+        name: Test
+        uses: addnab/docker-run-action@v1
+        with:
+          image: premoweb/php-fpm:${{ matrix.php }}
+          options: -v ${{ github.workspace }}/${{ matrix.php }}:/var/www/share/project
+          shell: bash
+          run: |
+            /var/www/share/project/php_fpm_test.sh
